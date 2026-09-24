@@ -12,6 +12,18 @@ Comprobar periódicamente las páginas oficiales de los eventos y detectar cambi
 
 La página individual del evento será la fuente de verdad para determinar si hay plazas disponibles.
 
+## Reglas de vigilancia
+
+- Se comprueban todos los eventos que aparezcan en la web principal; no se descartan por fecha.
+- Un evento agotado se sigue vigilando, porque pueden liberarse plazas posteriormente.
+- La web principal sirve para descubrir eventos; la página individual sirve para confirmar la disponibilidad.
+- Un resultado DESCONOCIDO no sustituye al último estado confirmado y nunca genera una alerta.
+- La primera disponibilidad confirmada genera una alerta.
+- Tras una alerta, se vuelve a avisar si el evento continúa disponible cuando hayan pasado 15 minutos desde la última alerta.
+- El intervalo de 15 minutos es independiente para cada evento.
+- Si un evento pasa a agotado, dejan de enviarse alertas hasta que vuelva a estar disponible.
+- Si un evento desaparece de la web principal, deja de formar parte de la vigilancia activa, aunque su historial se conserva.
+
 ## Próximos pasos
 
 - [ ] Investigar y documentar la estructura actual de la web
