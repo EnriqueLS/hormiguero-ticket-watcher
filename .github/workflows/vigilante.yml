@@ -31,17 +31,20 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      - name: Ejecutar pruebas
+        run: python -m unittest discover -s pruebas -p "test_*.py"
+
       - name: Ejecutar vigilancia
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python src/vigilante.py
 
-      - name: Guardar estado e histórico
+      - name: Guardar estado
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add datos/estado.json datos/historial.csv
+          git add datos/estado.json
           if git diff --cached --quiet; then
             echo "No hay cambios que guardar."
             exit 0
