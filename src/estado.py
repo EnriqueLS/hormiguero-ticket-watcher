@@ -1,8 +1,7 @@
-"""Persistencia del estado y del histórico del vigilante."""
+"""Persistencia mínima del estado de alertas."""
 
 from __future__ import annotations
 
-import csv
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,7 +9,6 @@ from typing import Any
 
 
 RUTA_ESTADO = Path("datos/estado.json")
-RUTA_HISTORIAL = Path("datos/historial.csv")
 
 
 def ahora_iso() -> str:
@@ -24,7 +22,14 @@ def cargar_estado() -> dict[str, Any]:
     try:
         datos = json.loads(RUTA_ESTADO.read_text(encoding="utf-8"))
         if isinstance(datos, dict) and isinstance(datos.get("eventos"), dict):
-            return datos
+            # Solo necesitamos conservar la hora del último aviso por evento.
+            eventos = {}
+            for identificador, registro in datos["eventos"].items():
+                if isinstance(registro, dict) and registro.get("ultima_alerta"):
+                    eventos[str(identificador)] = {
+                        "ultima_alerta": registro["ultima_alerta"]
+                    }
+            return {"eventos": eventos}
     except (OSError, json.JSONDecodeError):
         pass
 
@@ -39,18 +44,3 @@ def guardar_estado(estado: dict[str, Any]) -> None:
         encoding="utf-8",
     )
     temporal.replace(RUTA_ESTADO)
-
-
-def registrar_historico(fila: dict[str, Any]) -> None:
-    RUTA_HISTORIAL.parent.mkdir(parents=True, exist_ok=True)
-    campos = [
-        "timestamp", "identificador", "fecha", "hora",
-        "invitado", "estado", "motivo",
-    ]
-
-    existe = RUTA_HISTORIAL.exists()
-    with RUTA_HISTORIAL.open("a", newline="", encoding="utf-8") as archivo:
-        escritor = csv.DictWriter(archivo, fieldnames=campos)
-        if not existe:
-            escritor.writeheader()
-        escritor.writerow({campo: fila.get(campo, "") for campo in campos})
