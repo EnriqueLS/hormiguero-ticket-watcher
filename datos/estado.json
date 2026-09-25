@@ -1,44 +1,8 @@
 {
   "eventos": {
-    "382": {
-      "estado_confirmado": "AGOTADO",
-      "ultima_alerta": null,
-      "ultima_comprobacion": "2026-09-25T09:53:23.271122+00:00",
-      "activo": true,
-      "fecha": "28 Sep EL HORMIGUERO T21 lunes, 28 de septiembre de 2026 · 21:00h Entradas agotadas",
-      "hora": null,
-      "invitado": null,
-      "url": "https://entradas.7yaccion.com/evento/382/"
-    },
-    "380": {
-      "estado_confirmado": "AGOTADO",
-      "ultima_alerta": null,
-      "ultima_comprobacion": "2026-09-25T09:53:23.271342+00:00",
-      "activo": true,
-      "fecha": "29 Sep EL HORMIGUERO T21 martes, 29 de septiembre de 2026 · 21:00h Solicitar entradas",
-      "hora": null,
-      "invitado": null,
-      "url": "https://entradas.7yaccion.com/evento/380/"
-    },
-    "387": {
-      "estado_confirmado": "AGOTADO",
-      "ultima_alerta": null,
-      "ultima_comprobacion": "2026-09-25T09:53:23.271423+00:00",
-      "activo": true,
-      "fecha": "30 Sep EL HORMIGUERO T21 miércoles, 30 de septiembre de 2026 · 21:00h Entradas agotadas",
-      "hora": null,
-      "invitado": null,
-      "url": "https://entradas.7yaccion.com/evento/387/"
-    },
-    "385": {
-      "estado_confirmado": "AGOTADO",
-      "ultima_alerta": null,
-      "ultima_comprobacion": "2026-09-25T09:53:23.271495+00:00",
-      "activo": true,
-      "fecha": "01 Oct EL HORMIGUERO T21 jueves, 01 de octubre de 2026 · 21:00h Entradas agotadas",
-      "hora": null,
-      "invitado": null,
-      "url": "https://entradas.7yaccion.com/evento/385/"
-    }
+    "382": {},
+    "380": {},
+    "387": {},
+    "385": {}
   }
 }
