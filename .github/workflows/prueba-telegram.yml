@@ -1,0 +1,47 @@
+name: Prueba Telegram
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar requests
+        run: pip install requests
+
+      - name: Enviar mensaje de prueba
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          import requests
+
+          token = os.environ["TELEGRAM_BOT_TOKEN"]
+          chat_id = os.environ["TELEGRAM_CHAT_ID"]
+
+          respuesta = requests.post(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data={
+                  "chat_id": chat_id,
+                  "text": "✅ Prueba correcta: GitHub Actions puede enviar mensajes al bot de El Hormiguero.",
+              },
+              timeout=20,
+          )
+          print(respuesta.text)
+          respuesta.raise_for_status()
+
+          if not respuesta.json().get("ok"):
+              raise SystemExit("Telegram no confirmó el envío.")
+          PY
