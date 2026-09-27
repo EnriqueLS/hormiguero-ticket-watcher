@@ -2,7 +2,7 @@ name: Vigilante El Hormiguero
 
 on:
   schedule:
-    - cron: "*/5 5-22 * * *"
+    - cron: "2-57/5 5-22 * * *"
   workflow_dispatch:
 
 permissions:
