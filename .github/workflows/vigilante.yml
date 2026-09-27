@@ -2,7 +2,7 @@ name: Vigilante El Hormiguero
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/5 5-22 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,16 +31,29 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      - name: Comprobar horario
+        id: horario
+        run: |
+          HORA=$(TZ=Europe/Madrid date +%H)
+          if [ "$HORA" -ge 7 ] && [ "$HORA" -lt 23 ]; then
+            echo "activo=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "activo=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Ejecutar pruebas
+        if: steps.horario.outputs.activo == 'true'
         run: python -m unittest discover -s pruebas -p "test_*.py"
 
       - name: Ejecutar vigilancia
+        if: steps.horario.outputs.activo == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python src/vigilante.py
 
       - name: Guardar estado
+        if: steps.horario.outputs.activo == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
