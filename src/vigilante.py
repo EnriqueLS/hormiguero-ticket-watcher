@@ -41,10 +41,19 @@ def debe_alertar(registro: dict) -> bool:
 
 
 def procesar_eventos(estado: dict) -> None:
-    eventos = consultar_eventos()
+    eventos, pagina_principal_ok = consultar_eventos()
+
+    if not pagina_principal_ok:
+        print("No se pudo consultar la web principal; se conserva el estado.")
+        return
+
     eventos_actuales = {evento.identificador for evento in eventos}
 
     for evento in eventos:
+        if evento.estado == EstadoDisponibilidad.AGOTADO:
+            estado["eventos"].pop(evento.identificador, None)
+            continue
+
         registro = estado["eventos"].setdefault(evento.identificador, {})
 
         if evento.estado != EstadoDisponibilidad.DISPONIBLE:
@@ -55,8 +64,6 @@ def procesar_eventos(estado: dict) -> None:
             if enviar_alerta(evento):
                 registro["ultima_alerta"] = ahora_iso()
 
-    # Solo conservamos el último aviso de los eventos que siguen
-    # publicados actualmente en la web principal.
     estado["eventos"] = {
         identificador: registro
         for identificador, registro in estado["eventos"].items()
