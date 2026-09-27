@@ -14,7 +14,7 @@ from telegram import enviar_alerta
 
 
 INTERVALO_COMPROBACION_SEGUNDOS = 55
-DURACION_CICLO_SEGUNDOS = 4 * 60
+DURACION_CICLO_SEGUNDOS = 4 * 60 + 40
 INTERVALO_REAVISO_MINUTOS = 10
 
 
@@ -95,7 +95,8 @@ def ejecutar() -> None:
     print(
         f"🚀 Vigilante iniciado. Comprobaciones cada "
         f"{INTERVALO_COMPROBACION_SEGUNDOS} segundos durante "
-        f"{DURACION_CICLO_SEGUNDOS // 60} minutos."
+        f"{DURACION_CICLO_SEGUNDOS // 60} minutos "
+        f"({DURACION_CICLO_SEGUNDOS} s)."
     )
 
     while time.monotonic() - inicio < DURACION_CICLO_SEGUNDOS:
