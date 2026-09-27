@@ -67,6 +67,7 @@ def determinar_estado(html: Optional[str]) -> EstadoDisponibilidad:
     indicadores_agotado = (
         "no hay plazas disponibles ahora mismo",
         "entradas agotadas",
+        "no quedan plazas disponibles para este evento",
         "no hay plazas disponibles",
     )
     if any(indicador in texto for indicador in indicadores_agotado):
@@ -111,21 +112,30 @@ def extraer_eventos(html: Optional[str]) -> list[Evento]:
     return eventos
 
 
-def consultar_eventos() -> list[Evento]:
-    """Descubre eventos y consulta cada página individual."""
+def consultar_eventos() -> tuple[list[Evento], bool]:
+    """Descubre eventos y consulta cada página individual.
+
+    El segundo valor indica si la página principal se pudo consultar.
+    """
     sesion = crear_sesion()
-    eventos = extraer_eventos(obtener_html(sesion, URL_PRINCIPAL))
+    html_principal = obtener_html(sesion, URL_PRINCIPAL)
+
+    if html_principal is None:
+        return [], False
+
+    eventos = extraer_eventos(html_principal)
 
     for evento in eventos:
         evento.estado = determinar_estado(
             obtener_html(sesion, evento.url)
         )
 
-    return eventos
+    return eventos, True
 
 
 if __name__ == "__main__":
-    for evento in consultar_eventos():
+    eventos, _ = consultar_eventos()
+    for evento in eventos:
         print(
             f"[{evento.estado.value}] "
             f"evento={evento.identificador} "
