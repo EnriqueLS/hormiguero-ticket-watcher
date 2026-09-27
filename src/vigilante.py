@@ -41,15 +41,27 @@ def debe_alertar(registro: dict) -> bool:
 
 
 def procesar_eventos(estado: dict) -> None:
+    print(
+        f"[{datetime.now().astimezone().isoformat(timespec='seconds')}] "
+        "Iniciando comprobación de la web..."
+    )
+
     eventos, pagina_principal_ok = consultar_eventos()
 
     if not pagina_principal_ok:
-        print("No se pudo consultar la web principal; se conserva el estado.")
+        print("❌ No se pudo consultar la web principal; se conserva el estado.")
         return
+
+    print(f"✅ Web principal OK. Eventos encontrados: {len(eventos)}")
 
     eventos_actuales = {evento.identificador for evento in eventos}
 
     for evento in eventos:
+        print(
+            f"   → Evento {evento.identificador}: "
+            f"{evento.estado.value} | {evento.url}"
+        )
+
         if evento.estado == EstadoDisponibilidad.AGOTADO:
             estado["eventos"].pop(evento.identificador, None)
             continue
@@ -60,9 +72,12 @@ def procesar_eventos(estado: dict) -> None:
             continue
 
         if debe_alertar(registro):
-            print(f"Disponibilidad confirmada: {evento.identificador}")
+            print(f"🚨 Disponibilidad confirmada: {evento.identificador}")
             if enviar_alerta(evento):
                 registro["ultima_alerta"] = ahora_iso()
+                print(f"📨 Alerta enviada: {evento.identificador}")
+        else:
+            print(f"⏳ Reaviso todavía bloqueado: {evento.identificador}")
 
     estado["eventos"] = {
         identificador: registro
@@ -70,17 +85,25 @@ def procesar_eventos(estado: dict) -> None:
         if identificador in eventos_actuales
     }
 
+    print("✔️ Comprobación terminada.")
+
 
 def ejecutar() -> None:
     estado = cargar_estado()
     inicio = time.monotonic()
+
+    print(
+        f"🚀 Vigilante iniciado. Comprobaciones cada "
+        f"{INTERVALO_COMPROBACION_SEGUNDOS} segundos durante "
+        f"{DURACION_CICLO_SEGUNDOS // 60} minutos."
+    )
 
     while time.monotonic() - inicio < DURACION_CICLO_SEGUNDOS:
         try:
             procesar_eventos(estado)
             guardar_estado(estado)
         except Exception as error:
-            print(f"Error durante la comprobación: {error}")
+            print(f"❌ Error durante la comprobación: {error}")
 
         restante = DURACION_CICLO_SEGUNDOS - (time.monotonic() - inicio)
         if restante <= 0:
@@ -88,6 +111,7 @@ def ejecutar() -> None:
         time.sleep(min(INTERVALO_COMPROBACION_SEGUNDOS, restante))
 
     guardar_estado(estado)
+    print("🏁 Ciclo terminado. Estado guardado.")
 
 
 if __name__ == "__main__":
