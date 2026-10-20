@@ -55,7 +55,7 @@ if (-not (Test-Path $envFile)) {
     Write-Host " - Chat id: tu id numerico (puedes verlo con @userinfobot)"
     $token = Read-Host "TELEGRAM_BOT_TOKEN"
     $chat = Read-Host "TELEGRAM_CHAT_ID"
-    $plantilla = Get-Content (Join-Path $Raiz ".env.ejemplo") -Raw
+    $plantilla = Get-Content (Join-Path $Raiz "configuracion_ejemplo.txt") -Raw
     $plantilla = $plantilla -replace "pon_aqui_el_token_del_bot", $token.Trim()
     $plantilla = $plantilla -replace "pon_aqui_tu_chat_id", $chat.Trim()
     [IO.File]::WriteAllText($envFile, $plantilla, (New-Object Text.UTF8Encoding $false))

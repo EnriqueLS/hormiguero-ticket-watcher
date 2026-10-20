@@ -29,7 +29,7 @@ El vigilante se queda funcionando en segundo plano en tu PC, revisa
 | `windows\probar_telegram.bat` | Enviar un mensaje de prueba |
 | `windows\desinstalar.bat` | Pararlo y quitarlo del arranque |
 
-Ajustes en `.env` (horario, intervalo, abrir navegador…): ver `.env.ejemplo`.
+Ajustes en `.env` (horario, intervalo, abrir navegador…): ver `configuracion_ejemplo.txt`.
 Tras cambiar `.env`, ejecuta `detener.bat` y luego `arrancar.bat`.
 
 > El PC tiene que estar encendido, con sesión iniciada y **sin suspensión**

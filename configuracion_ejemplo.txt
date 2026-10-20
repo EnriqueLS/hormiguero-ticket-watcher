@@ -1,4 +1,4 @@
-# Copia este archivo como .env (instalar.bat lo hace por ti)
+# Plantilla: instalar.bat la copia como .env con tus datos de Telegram
 TELEGRAM_BOT_TOKEN=pon_aqui_el_token_del_bot
 TELEGRAM_CHAT_ID=pon_aqui_tu_chat_id
 
