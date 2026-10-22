@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 
-RUTA_ESTADO = Path("datos/estado.json")
+RUTA_ESTADO = Path(__file__).resolve().parent.parent / "datos" / "estado.json"
 
 
 def ahora_iso() -> str:

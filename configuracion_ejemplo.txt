@@ -1,0 +1,17 @@
+# Plantilla: instalar.bat la copia como .env con tus datos de Telegram
+TELEGRAM_BOT_TOKEN=pon_aqui_el_token_del_bot
+TELEGRAM_CHAT_ID=pon_aqui_tu_chat_id
+
+# Cada cuantos segundos revisa la web (las plazas pueden durar menos de 2 min)
+INTERVALO_REVISION=15
+# Horario de vigilancia (hora de Espana). HORA_INICIO=0 y HORA_FIN=0 -> 24 horas
+HORA_INICIO=7
+HORA_FIN=23
+# Abrir la pagina del evento en el navegador al detectar plazas (1 = si, 0 = no)
+ABRIR_NAVEGADOR=1
+# Cuantos mensajes de Telegram seguidos por alerta
+REPETICIONES_ALERTA=3
+# Avisar por Telegram si la web no responde durante estos minutos
+AVISO_FALLO_MINUTOS=10
+# Resumen por Telegram cada X horas para saber que sigue vivo (0 = nunca)
+RESUMEN_HORAS=3
