@@ -34,12 +34,12 @@ tu modo Concentración (No molestar/Sueño) permite las notificaciones de Telegr
 Las plazas pueden aparecer solo 1–2 minutos, así que el PC puede hacerlo por ti:
 
 1. Doble clic en **`CONFIGURAR FORMULARIO.bat`** → te pregunta tus datos (se guardan solo en `.env`)
-   y si quieres rellenar solo, enviar solo y aceptar las condiciones.
+   si quieres que rellene solo, si marca la casilla de condiciones, y qué días ignorar
+   (la web no publica el invitado: si ya sabes qué días no te interesan, no te avisará de ellos).
 2. Al detectar plazas abre Edge/Chrome, espera en la sala de espera si hace falta,
    rellena el formulario y te manda a Telegram una **captura** del resultado.
-3. `AUTO_ENVIAR=0` (por defecto): lo deja rellenado y solo falta que pulses *Enviar*.
-   `AUTO_ENVIAR=1`: lo envía él, **salvo** que haya captcha, un campo obligatorio sin
-   rellenar o una casilla de condiciones sin marcar (en ese caso te avisa).
+3. **No envía nunca**: lo deja rellenado y el botón *Enviar* lo pulsas tú, si te gusta el invitado.
+   Si hay captcha o un campo que no reconoce, te avisa con la captura.
 4. Cada intento guarda captura y HTML en `datos\capturas\` para poder ajustarlo.
 
 > La solicitud solo vale si luego recibes la llamada de confirmación.

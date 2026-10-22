@@ -1,11 +1,10 @@
-"""Abre la página de un evento, rellena el formulario con TUS datos (.env) y,
-solo si lo activas (AUTO_ENVIAR=1), lo envía.
+"""Abre la página de un evento y rellena el formulario con TUS datos (.env).
+NUNCA lo envía: el botón "Enviar" lo pulsas tú, cuando decidas.
 
 Uso:  python src/reservar.py https://entradas.7yaccion.com/evento/418/
 
 Seguridad:
-- Nunca envía si hay captcha, si queda un campo obligatorio sin rellenar o si
-  hay una casilla de condiciones sin marcar (salvo ACEPTAR_CONDICIONES=1).
+- Si hay captcha o queda algún campo obligatorio sin rellenar, te avisa.
 - Siempre guarda una captura y el HTML en datos/capturas/ para poder revisar
   (y ajustar el rellenado) después de cada intento.
 """
@@ -35,7 +34,6 @@ DATOS = {
     "email": os.getenv("DATOS_EMAIL", "").strip(),
     "personas": os.getenv("DATOS_PERSONAS", "1").strip() or "1",
 }
-AUTO_ENVIAR = config.booleano("AUTO_ENVIAR", False)
 ACEPTAR_CONDICIONES = config.booleano("ACEPTAR_CONDICIONES", False)
 HEADLESS = config.booleano("NAVEGADOR_OCULTO", False)
 ESPERA_FORMULARIO = config.entero("ESPERA_FORMULARIO_SEGUNDOS", 150)
@@ -53,8 +51,6 @@ REGLAS = [
 TEXTO_CONDICIONES = re.compile(
     r"acepto|condiciones|privacidad|pol[ií]tica|protecci[oó]n de datos|"
     r"aviso legal|consentimiento|he le[ií]do", re.I)
-TEXTO_ENVIAR = re.compile(
-    r"enviar|solicitar|reservar|confirmar|inscribir|apuntar|continuar", re.I)
 
 JS_CONTROLES = """
 () => {
@@ -216,16 +212,6 @@ def rellenar(pagina, controles: list[dict]) -> list[str]:
     return problemas
 
 
-def pulsar_enviar(pagina) -> bool:
-    candidatos = pagina.locator("button[type=submit], input[type=submit]")
-    if candidatos.count() == 0:
-        candidatos = pagina.get_by_role("button", name=TEXTO_ENVIAR)
-    if candidatos.count() == 0:
-        return False
-    candidatos.first.click()
-    return True
-
-
 def principal(url: str) -> int:
     from playwright.sync_api import sync_playwright
 
@@ -269,29 +255,13 @@ def principal(url: str) -> int:
             navegador.close()
             return 2
 
-        if not AUTO_ENVIAR:
-            enviar_foto(str(foto), f"✍️ Formulario RELLENADO. Solo falta pulsar Enviar.\n🔗 {url}")
-            log("Rellenado. Falta pulsar Enviar (AUTO_ENVIAR=0).")
-            if not HEADLESS:
-                try:
-                    pagina.wait_for_event("close", timeout=15 * 60 * 1000)
-                except Exception:  # noqa: BLE001
-                    pass
-            navegador.close()
-            return 0
-
-        if not pulsar_enviar(pagina):
-            enviar_foto(str(foto), f"⚠️ Rellenado, pero no encuentro el botón de envío.\n🔗 {url}")
-            navegador.close()
-            return 3
-        pagina.wait_for_timeout(5000)
-        resultado = guardar_captura(pagina, "tras-enviar")
-        texto = " ".join(pagina.inner_text("body").split())[:400]
-        enviar_foto(str(resultado), f"📨 Solicitud ENVIADA. La web responde:\n{texto}\n\n"
-                                    "Recuerda: solo vale si te llaman para confirmar.")
-        log(f"Enviado. Respuesta: {texto[:150]}")
+        enviar_foto(str(foto), f"✍️ Formulario RELLENADO. Falta que tú pulses Enviar.\n🔗 {url}")
+        log("Rellenado. Pulsa Enviar tú cuando quieras (cierra la ventana al terminar).")
         if not HEADLESS:
-            pagina.wait_for_timeout(20000)
+            try:
+                pagina.wait_for_event("close", timeout=15 * 60 * 1000)
+            except Exception:  # noqa: BLE001
+                pass
         navegador.close()
         return 0
 

@@ -48,8 +48,14 @@ Preguntar "Numero de personas (maximo 8)" "DATOS_PERSONAS"
 Write-Host ""
 Write-Host "=== Opciones ===" -ForegroundColor Cyan
 SiNo "Rellenar el formulario automaticamente en este PC cuando haya plazas?" "AUTO_RELLENAR"
-SiNo "Ademas, PULSAR ENVIAR solo (si no hay captcha ni campos sin rellenar)?" "AUTO_ENVIAR"
+Write-Host "(El boton Enviar NUNCA lo pulsa el programa: lo pulsas tu.)"
 SiNo "Marcar por mi la casilla de condiciones/privacidad? (sin esto no envia)" "ACEPTAR_CONDICIONES"
+
+Write-Host ""
+Write-Host "=== Dias que NO te interesan (no te avisara de ellos) ===" -ForegroundColor Cyan
+Write-Host "Ejemplo: 26 de octubre, 28 de octubre   (Enter = no ignorar ninguno; escribe - para borrar)"
+$ign = Read-Host "Dias a ignorar"
+if ($ign.Trim() -eq "-") { Poner-Clave "IGNORAR_DIAS" "" } elseif ($ign.Trim()) { Poner-Clave "IGNORAR_DIAS" $ign.Trim() }
 
 Write-Host ""
 Write-Host "Instalando el componente de navegador (rapido)..."

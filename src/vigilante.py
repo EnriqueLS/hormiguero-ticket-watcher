@@ -32,6 +32,8 @@ RAIZ = config.RAIZ
 # Las plazas pueden durar < 2 min (visto en la práctica), por eso 15 s.
 INTERVALO_COMPROBACION_SEGUNDOS = config.entero("INTERVALO_REVISION", 15)
 AUTO_RELLENAR = config.booleano("AUTO_RELLENAR", False)
+# Días que NO te interesan (p. ej. "26 de octubre, 28 de octubre" o ids "401,416").
+IGNORAR = [x.strip().lower() for x in os.getenv("IGNORAR_DIAS", "").split(",") if x.strip()]
 DURACION_CICLO_SEGUNDOS = 4 * 60 + 40
 INTERVALO_REAVISO_MINUTOS = 10
 HORA_INICIO = config.entero("HORA_INICIO", 7)
@@ -107,6 +109,14 @@ def etiqueta_evento(evento) -> str:
     return re.sub(r" de \d{4}$", "", texto)
 
 
+def ignorado(evento) -> bool:
+    if not IGNORAR:
+        return False
+    claves = {evento.identificador.lower(), etiqueta_evento(evento).lower(),
+              (evento.fecha or "").lower()}
+    return any(i == c or (i and i in (evento.fecha or "").lower()) for i in IGNORAR for c in claves)
+
+
 def guardar_pagina_evento(evento) -> None:
     """Guarda el HTML del momento en que hay plazas: así se puede ver el
     formulario real y ajustar el rellenado automático."""
@@ -170,6 +180,10 @@ def procesar_eventos(estado: dict, abrir_navegador: bool = False):
         registro = estado["eventos"].setdefault(evento.identificador, {})
 
         if evento.estado != EstadoDisponibilidad.DISPONIBLE:
+            continue
+
+        if ignorado(evento):
+            log.info(f"🙈 Hay plazas el {etiqueta_evento(evento)} pero lo tienes en IGNORAR_DIAS.")
             continue
 
         if debe_alertar(registro):
