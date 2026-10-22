@@ -2,7 +2,8 @@
 # - Crea el entorno de Python e instala dependencias
 # - Pide el token y el chat id de Telegram (solo la primera vez)
 # - Envia un mensaje de prueba
-# - Hace que arranque solo al iniciar sesion en Windows y lo lanza ya
+# - NO arranca solo con Windows: se lanza a mano con INICIAR VIGILANTE.bat
+param([switch]$SinPausa)
 $ErrorActionPreference = "Stop"
 $Raiz = Split-Path -Parent $PSScriptRoot
 Set-Location $Raiz
@@ -30,8 +31,8 @@ if (-not $py) {
         Write-Host "No se pudo instalar automaticamente. Instala Python desde https://www.python.org/downloads/ (marca 'Add python.exe to PATH') y vuelve a ejecutar instalar.bat" -ForegroundColor Red
         Read-Host "Pulsa Enter para salir"; exit 1
     }
-    Write-Host "Python instalado. CIERRA esta ventana y vuelve a ejecutar instalar.bat" -ForegroundColor Green
-    Read-Host "Pulsa Enter para salir"; exit 0
+    Write-Host "Python instalado. CIERRA esta ventana y vuelve a ejecutar INICIAR VIGILANTE.bat" -ForegroundColor Green
+    Read-Host "Pulsa Enter para salir"; exit 1
 }
 
 # 2. Entorno virtual + dependencias
@@ -77,30 +78,11 @@ Write-Host ""
 Write-Host "Comprobando la web de entradas una vez..."
 & $venvPy (Join-Path $Raiz "src\vigilante.py") --una-vez
 
-# 6. Arranque automatico al iniciar sesion (acceso directo en Inicio, sin permisos de admin)
-$pyw = Join-Path $Raiz ".venv\Scripts\pythonw.exe"
-$script = Join-Path $Raiz "src\vigilante.py"
-$inicio = [Environment]::GetFolderPath("Startup")
-$lnk = Join-Path $inicio "Vigilante El Hormiguero.lnk"
-$shell = New-Object -ComObject WScript.Shell
-$acceso = $shell.CreateShortcut($lnk)
-$acceso.TargetPath = $pyw
-$acceso.Arguments = "`"$script`" --continuo"
-$acceso.WorkingDirectory = $Raiz
-$acceso.WindowStyle = 7
-$acceso.Description = "Vigilante de entradas de El Hormiguero"
-$acceso.Save()
-Write-Host "Arranque automatico configurado: $lnk"
-
-# 7. Parar si ya habia uno y lanzarlo ahora
-& (Join-Path $PSScriptRoot "detener.ps1") -Silencioso
-Start-Process -FilePath $pyw -ArgumentList "`"$script`" --continuo" -WorkingDirectory $Raiz -WindowStyle Hidden
-Start-Sleep -Seconds 3
+# 6. Sin arranque automatico: se lanza a mano con "INICIAR VIGILANTE.bat"
+$lnk = Join-Path ([Environment]::GetFolderPath("Startup")) "Vigilante El Hormiguero.lnk"
+if (Test-Path $lnk) { Remove-Item $lnk -ErrorAction SilentlyContinue }
 Write-Host ""
-Write-Host "LISTO. El vigilante esta funcionando en segundo plano (sin ventana)." -ForegroundColor Green
-Write-Host "Te llegara un Telegram de 'Vigilante arrancado'."
-Write-Host " - Ver lo que hace:  windows\ver_log.bat"
-Write-Host " - Pararlo:          windows\detener.bat"
-Write-Host " - Quitarlo del todo: windows\desinstalar.bat"
-Write-Host "IMPORTANTE: el PC debe estar encendido y sin suspender para que vigile."
-Read-Host "Pulsa Enter para cerrar"
+Write-Host "INSTALACION TERMINADA." -ForegroundColor Green
+Write-Host "Para lanzarlo: doble clic en 'INICIAR VIGILANTE.bat' (en la carpeta del proyecto)."
+Write-Host "Para pararlo: cierra esa ventana."
+if (-not $SinPausa) { Read-Host "Pulsa Enter para cerrar" }

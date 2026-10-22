@@ -4,33 +4,26 @@ Bot para monitorizar la disponibilidad de entradas de público de El Hormiguero 
 
 ## Modo PC (Windows) — recomendado
 
-El vigilante se queda funcionando en segundo plano en tu PC, revisa
+Lo lanzas tú cuando quieras y se queda funcionando en una ventana, revisa
 `https://entradas.7yaccion.com/` **cada minuto** y, cuando un evento tiene plazas:
 
 1. Te manda 3 mensajes de Telegram con día, hora y enlace directo.
 2. Abre la página del evento en tu navegador para que rellenes el formulario.
 
-### Instalación (una sola vez)
+### Cómo lanzarlo (a mano)
 
-1. Descarga o clona este repositorio en una carpeta (p. ej. `Documentos\hormiguero-ticket-watcher`).
-2. Doble clic en **`windows\instalar.bat`**. Hace todo:
-   - instala Python si no lo tienes (con winget) y las dependencias,
-   - te pide el **token del bot** y tu **chat id** de Telegram y los guarda en `.env`,
-   - envía un Telegram de prueba,
-   - lo añade al **arranque de Windows** y lo lanza ya.
+Doble clic en **`INICIAR VIGILANTE.bat`** (en la raíz del proyecto).
 
-### Uso diario
+- La primera vez instala lo necesario (Python si falta, dependencias), te pide el
+  **token del bot** y tu **chat id** de Telegram, los guarda en `.env` y envía un
+  Telegram de prueba.
+- Después se queda funcionando en esa ventana, mostrando cada comprobación.
+- **Para pararlo, cierra la ventana.** No arranca solo con Windows.
 
-| Archivo | Para qué |
-|---|---|
-| `windows\ver_log.bat` | Ver en directo lo que va comprobando |
-| `windows\detener.bat` | Pararlo |
-| `windows\arrancar.bat` | Volver a lanzarlo sin reiniciar |
-| `windows\probar_telegram.bat` | Enviar un mensaje de prueba |
-| `windows\desinstalar.bat` | Pararlo y quitarlo del arranque |
+Otros: `windows\probar_telegram.bat` (mensaje de prueba), `windows\ver_log.bat` (historial).
 
 Ajustes en `.env` (horario, intervalo, abrir navegador…): ver `configuracion_ejemplo.txt`.
-Tras cambiar `.env`, ejecuta `detener.bat` y luego `arrancar.bat`.
+Tras cambiar `.env`, cierra la ventana y vuelve a lanzarlo.
 
 > El PC tiene que estar encendido, con sesión iniciada y **sin suspensión**
 > (Configuración → Sistema → Inicio/apagado → Suspender: Nunca, al menos enchufado).
@@ -67,6 +60,6 @@ Solo se guarda la hora del último aviso por evento en `datos/estado.json`. No s
 ## Pendiente
 
 - [x] Extracción de fecha y hora (la web no publica el invitado)
-- [x] Modo PC continuo con arranque automático en Windows
+- [x] Modo PC continuo, lanzado a mano en Windows
 - [ ] Añadir una segunda comprobación independiente antes de una alerta
 - [ ] Probar el comportamiento real cuando aparezca una plaza
