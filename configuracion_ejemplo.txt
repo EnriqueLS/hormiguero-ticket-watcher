@@ -12,4 +12,6 @@ ABRIR_NAVEGADOR=1
 # Cuantos mensajes de Telegram seguidos por alerta
 REPETICIONES_ALERTA=3
 # Avisar por Telegram si la web no responde durante estos minutos
-AVISO_FALLO_MINUTOS=30
+AVISO_FALLO_MINUTOS=10
+# Resumen por Telegram cada X horas para saber que sigue vivo (0 = nunca)
+RESUMEN_HORAS=3

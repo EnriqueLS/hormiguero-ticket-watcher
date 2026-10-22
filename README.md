@@ -22,6 +22,16 @@ Doble clic en **`INICIAR VIGILANTE.bat`** (en la raíz del proyecto).
 
 Otros: `windows\probar_telegram.bat` (mensaje de prueba), `windows\ver_log.bat` (historial).
 
+### ¿Cómo sé que está comprobando y no le bloquean?
+
+- **En la ventana**: cada minuto escribe `✅ Web leída correctamente` y el estado de
+  cada evento. Si algo falla escribe `❌ NO SE PUEDE LEER LA WEB` o `⚠️ Lectura dudosa`
+  con el motivo (HTTP 403/429, página antibots, sin internet, web cambiada…).
+- **En el título de la ventana** (barra de tareas): `OK, ultima comprobacion HH:MM`
+  o `ATENCION: <motivo>`.
+- **Por Telegram**: un resumen cada 3 h ("🟢 Sigo vigilando…") y un aviso si lleva
+  10 min sin poder leer bien la web ("⚠️ … NO te puedo avisar de plazas").
+
 Ajustes en `.env` (horario, intervalo, abrir navegador…): ver `configuracion_ejemplo.txt`.
 Tras cambiar `.env`, cierra la ventana y vuelve a lanzarlo.
 

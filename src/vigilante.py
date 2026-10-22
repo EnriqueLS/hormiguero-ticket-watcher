@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import config  # noqa: E402  (carga .env antes que nada)
 from estado import ahora_iso, cargar_estado, guardar_estado  # noqa: E402
-from rascador import EstadoDisponibilidad, consultar_eventos  # noqa: E402
+from rascador import EstadoDisponibilidad, consultar  # noqa: E402
 from telegram import enviar_alerta, enviar_mensaje  # noqa: E402
 
 
@@ -33,7 +33,8 @@ INTERVALO_REAVISO_MINUTOS = 10
 HORA_INICIO = config.entero("HORA_INICIO", 7)
 HORA_FIN = config.entero("HORA_FIN", 23)
 ABRIR_NAVEGADOR = config.booleano("ABRIR_NAVEGADOR", True)
-AVISO_FALLO_MINUTOS = config.entero("AVISO_FALLO_MINUTOS", 30)
+AVISO_FALLO_MINUTOS = config.entero("AVISO_FALLO_MINUTOS", 10)
+RESUMEN_HORAS = config.entero("RESUMEN_HORAS", 3)
 
 log = logging.getLogger("vigilante")
 
@@ -96,17 +97,22 @@ def dentro_de_horario() -> bool:
     return hora >= HORA_INICIO or hora < HORA_FIN
 
 
-def procesar_eventos(estado: dict, abrir_navegador: bool = False) -> bool:
-    """Hace una comprobación. Devuelve True si la web principal respondió."""
+def procesar_eventos(estado: dict, abrir_navegador: bool = False):
+    """Hace una comprobación. Devuelve el Resultado (con su diagnóstico)."""
     log.info("Comprobando la web...")
 
-    eventos, pagina_principal_ok = consultar_eventos()
+    resultado = consultar()
+    eventos = resultado.eventos
 
-    if not pagina_principal_ok:
-        log.info("❌ No se pudo consultar la web principal; se conserva el estado.")
-        return False
+    if not resultado.principal_ok:
+        log.info(f"❌ NO SE PUEDE LEER LA WEB: {resultado.problema}")
+        return resultado
 
-    log.info(f"✅ Web OK. Eventos encontrados: {len(eventos)}")
+    if resultado.problema:
+        log.info(f"⚠️ Lectura dudosa: {resultado.problema}")
+    else:
+        log.info(f"✅ Web leída correctamente. Eventos: {len(eventos)} "
+                 "(he entrado en la página de cada uno)")
 
     eventos_actuales = {evento.identificador for evento in eventos}
 
@@ -146,7 +152,7 @@ def procesar_eventos(estado: dict, abrir_navegador: bool = False) -> bool:
         for identificador, registro in estado["eventos"].items()
         if identificador in eventos_actuales
     }
-    return True
+    return resultado
 
 
 def ejecutar() -> None:
@@ -169,6 +175,37 @@ def ejecutar() -> None:
 
     guardar_estado(estado)
     log.info("🏁 Ciclo terminado. Estado guardado.")
+
+
+def poner_titulo(ultimo_ok_reloj, problema) -> None:
+    """Título de la ventana: de un vistazo ves si va bien."""
+    if os.name != "nt":
+        return
+    if problema:
+        texto = f"Vigilante Hormiguero - ATENCION: {problema}"
+    elif ultimo_ok_reloj:
+        texto = f"Vigilante Hormiguero - OK, ultima comprobacion {ultimo_ok_reloj:%H:%M}"
+    else:
+        texto = "Vigilante Hormiguero - arrancando"
+    try:
+        import ctypes
+        ctypes.windll.kernel32.SetConsoleTitleW(texto)
+    except Exception:
+        pass
+
+
+def texto_resumen(comprobaciones, ultimo_ok_reloj, problema, eventos) -> str:
+    lineas = [f"🟢 Sigo vigilando. {comprobaciones} comprobaciones en las "
+              f"últimas {RESUMEN_HORAS} h."]
+    if ultimo_ok_reloj:
+        lineas.append(f"Última lectura correcta: {ultimo_ok_reloj:%H:%M}.")
+    if problema:
+        lineas[0] = "🟠 Sigo funcionando, pero con problemas."
+        lineas.append(f"Último problema: {problema}")
+    for evento in eventos:
+        lineas.append(f"• {evento.fecha or evento.identificador} "
+                      f"{evento.hora or ''}: {evento.estado.value}")
+    return "\n".join(lineas)
 
 
 def adquirir_bloqueo():
@@ -208,12 +245,20 @@ def ejecutar_continuo() -> None:
     )
     enviar_mensaje(
         "🤖 Vigilante de El Hormiguero arrancado en tu PC.\n"
-        f"Revisa cada {INTERVALO_COMPROBACION_SEGUNDOS} s, {horario}."
+        f"Revisa cada {INTERVALO_COMPROBACION_SEGUNDOS} s, {horario}.\n"
+        + (f"Te mandaré un resumen cada {RESUMEN_HORAS} h para que sepas que sigo vivo, "
+           if RESUMEN_HORAS > 0 else "")
+        + f"y te aviso si llevo {AVISO_FALLO_MINUTOS} min sin poder leer la web."
     )
 
     ultimo_ok = time.monotonic()
+    ultimo_ok_reloj = None
     fallo_avisado = False
     en_pausa = False
+    comprobaciones = 0
+    ultimo_problema = None
+    ultimos_eventos = []
+    ultimo_resumen = time.monotonic()
 
     while True:
         inicio = time.monotonic()
@@ -230,22 +275,38 @@ def ejecutar_continuo() -> None:
             en_pausa = False
 
         try:
-            if procesar_eventos(estado, abrir_navegador=ABRIR_NAVEGADOR):
+            resultado = procesar_eventos(estado, abrir_navegador=ABRIR_NAVEGADOR)
+            comprobaciones += 1
+            if resultado.eventos:
+                ultimos_eventos = resultado.eventos
+            ultimo_problema = resultado.problema
+            if resultado.sano:
                 ultimo_ok = time.monotonic()
+                ultimo_ok_reloj = hora_espana()
                 if fallo_avisado:
-                    enviar_mensaje("✅ La web de entradas vuelve a responder.")
+                    enviar_mensaje("✅ Vuelvo a leer bien la web de entradas.")
                     fallo_avisado = False
             guardar_estado(estado)
         except Exception as error:
+            ultimo_problema = f"error interno: {error!r}"
             log.info(f"❌ Error durante la comprobación: {error!r}")
+
+        poner_titulo(ultimo_ok_reloj, ultimo_problema)
 
         caida = time.monotonic() - ultimo_ok
         if not fallo_avisado and caida >= AVISO_FALLO_MINUTOS * 60:
             enviar_mensaje(
-                f"⚠️ Llevo {AVISO_FALLO_MINUTOS} min sin poder leer la web de "
-                "entradas (¿sin internet o web caída?). Sigo intentándolo."
+                f"⚠️ Llevo {AVISO_FALLO_MINUTOS} min sin poder leer bien la web "
+                f"de entradas.\nMotivo: {ultimo_problema}\n"
+                "Mientras dure esto NO te puedo avisar de plazas. Sigo intentándolo."
             )
             fallo_avisado = True
+
+        if RESUMEN_HORAS > 0 and time.monotonic() - ultimo_resumen >= RESUMEN_HORAS * 3600:
+            enviar_mensaje(texto_resumen(comprobaciones, ultimo_ok_reloj,
+                                         ultimo_problema, ultimos_eventos))
+            ultimo_resumen = time.monotonic()
+            comprobaciones = 0
 
         transcurrido = time.monotonic() - inicio
         time.sleep(max(5, INTERVALO_COMPROBACION_SEGUNDOS - transcurrido))
@@ -262,8 +323,10 @@ def principal() -> None:
     configurar_log(a_archivo=args.continuo)
 
     if args.una_vez:
-        eventos, ok = consultar_eventos()
-        log.info(f"Web principal OK: {ok}")
+        resultado = consultar()
+        eventos = resultado.eventos
+        log.info("✅ Lectura correcta" if resultado.sano
+                 else f"⚠️ Problema: {resultado.problema}")
         for evento in eventos:
             log.info(f"[{evento.estado.value}] {evento.fecha} {evento.hora or ''} "
                      f"{evento.url}")

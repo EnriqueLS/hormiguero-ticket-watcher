@@ -43,13 +43,44 @@ def crear_sesion() -> requests.Session:
     return sesion
 
 
+# Textos típicos de páginas antibots / bloqueo (Cloudflare, WAF, captcha...)
+SENALES_BLOQUEO = (
+    # Ojo: no incluir "captcha" a secas, el formulario real podría tener uno.
+    "just a moment...", "attention required! | cloudflare", "cf-chl-",
+    "checking your browser", "access denied", "request blocked",
+    "too many requests",
+)
+
+# Último problema detectado al descargar una página (para el diagnóstico).
+ultimo_problema: Optional[str] = None
+
+
 def obtener_html(sesion: requests.Session, url: str) -> Optional[str]:
+    """Descarga una página. Si falla o parece un bloqueo, devuelve None y
+    deja el motivo en `ultimo_problema`."""
+    global ultimo_problema
     try:
         respuesta = sesion.get(url, timeout=TIEMPO_ESPERA)
-        respuesta.raise_for_status()
-        return respuesta.text
-    except requests.RequestException:
+    except requests.Timeout:
+        ultimo_problema = "la web no responde (timeout)"
         return None
+    except requests.RequestException as error:
+        ultimo_problema = f"sin conexión ({type(error).__name__})"
+        return None
+
+    if respuesta.status_code in (403, 429, 503):
+        ultimo_problema = f"HTTP {respuesta.status_code} — posible BLOQUEO de la web"
+        return None
+    if respuesta.status_code >= 400:
+        ultimo_problema = f"HTTP {respuesta.status_code}"
+        return None
+
+    muestra = respuesta.text[:20000].lower()
+    if any(senal in muestra for senal in SENALES_BLOQUEO) and "/evento/" not in muestra:
+        ultimo_problema = "página antibots/captcha — posible BLOQUEO de la web"
+        return None
+
+    return respuesta.text
 
 
 def normalizar_texto(texto: str) -> str:
@@ -159,28 +190,59 @@ def extraer_eventos(html: Optional[str]) -> list[Evento]:
     return eventos
 
 
-def consultar_eventos() -> tuple[list[Evento], bool]:
-    """Descubre eventos y consulta cada página individual.
+@dataclass
+class Resultado:
+    eventos: list[Evento]
+    principal_ok: bool
+    problema: Optional[str] = None  # None = todo leído correctamente
 
-    El segundo valor indica si la página principal se pudo consultar.
-    """
+    @property
+    def sano(self) -> bool:
+        return self.principal_ok and self.problema is None
+
+
+def consultar() -> Resultado:
+    """Descubre eventos, entra en cada página individual y diagnostica
+    si la lectura ha sido fiable (o si parece que nos bloquean)."""
+    global ultimo_problema
+    ultimo_problema = None
     sesion = crear_sesion()
     html_principal = obtener_html(sesion, URL_PRINCIPAL)
 
     if html_principal is None:
-        return [], False
+        return Resultado([], False, f"portada: {ultimo_problema}")
 
     eventos = extraer_eventos(html_principal)
+    if not eventos:
+        return Resultado([], True,
+                         "la portada no muestra ningún evento (¿sin fechas, "
+                         "bloqueo o la web ha cambiado?)")
 
+    fallidos = 0
     for evento in eventos:
         html_evento = obtener_html(sesion, evento.url)
+        if html_evento is None:
+            fallidos += 1
         evento.estado = determinar_estado(html_evento)
         if html_evento:
             fecha, hora = extraer_fecha_hora(texto_visible(html_evento))
             evento.fecha = fecha or evento.fecha
             evento.hora = hora or evento.hora
 
-    return eventos, True
+    problema = None
+    if fallidos:
+        problema = (f"{fallidos} de {len(eventos)} páginas de evento no se "
+                    f"pudieron leer: {ultimo_problema}")
+    elif all(e.estado == EstadoDisponibilidad.DESCONOCIDO for e in eventos):
+        problema = ("ninguna página de evento tiene un estado reconocible "
+                    "(¿la web ha cambiado?)")
+    return Resultado(eventos, True, problema)
+
+
+def consultar_eventos() -> tuple[list[Evento], bool]:
+    """Compatibilidad: (eventos, portada_ok)."""
+    resultado = consultar()
+    return resultado.eventos, resultado.principal_ok
 
 
 if __name__ == "__main__":
