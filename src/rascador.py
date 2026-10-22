@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 from urllib.parse import urljoin
@@ -30,6 +31,7 @@ class Evento:
     url: str
     invitado: Optional[str] = None
     estado: EstadoDisponibilidad = EstadoDisponibilidad.DESCONOCIDO
+    html: Optional[str] = field(default=None, repr=False)
 
 
 def crear_sesion() -> requests.Session:
@@ -218,16 +220,19 @@ def consultar() -> Resultado:
                          "la portada no muestra ningún evento (¿sin fechas, "
                          "bloqueo o la web ha cambiado?)")
 
-    fallidos = 0
-    for evento in eventos:
-        html_evento = obtener_html(sesion, evento.url)
-        if html_evento is None:
-            fallidos += 1
+    def leer(evento: Evento) -> bool:
+        html_evento = obtener_html(crear_sesion(), evento.url)
         evento.estado = determinar_estado(html_evento)
+        evento.html = html_evento
         if html_evento:
             fecha, hora = extraer_fecha_hora(texto_visible(html_evento))
             evento.fecha = fecha or evento.fecha
             evento.hora = hora or evento.hora
+        return html_evento is None
+
+    # Todas las páginas de evento a la vez: la lectura tarda ~1 s en total.
+    with ThreadPoolExecutor(max_workers=min(8, len(eventos))) as pool:
+        fallidos = sum(pool.map(leer, eventos))
 
     problema = None
     if fallidos:

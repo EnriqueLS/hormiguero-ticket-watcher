@@ -2,8 +2,8 @@
 TELEGRAM_BOT_TOKEN=pon_aqui_el_token_del_bot
 TELEGRAM_CHAT_ID=pon_aqui_tu_chat_id
 
-# Cada cuantos segundos revisa la web
-INTERVALO_SEGUNDOS=60
+# Cada cuantos segundos revisa la web (las plazas pueden durar menos de 2 min)
+INTERVALO_REVISION=15
 # Horario de vigilancia (hora de Espana). HORA_INICIO=0 y HORA_FIN=0 -> 24 horas
 HORA_INICIO=7
 HORA_FIN=23
@@ -15,3 +15,17 @@ REPETICIONES_ALERTA=3
 AVISO_FALLO_MINUTOS=10
 # Resumen por Telegram cada X horas para saber que sigue vivo (0 = nunca)
 RESUMEN_HORAS=3
+
+# ---- Rellenado automatico del formulario (en este PC) ----
+# 1 = al detectar plazas abre Edge/Chrome y rellena el formulario con tus datos
+AUTO_RELLENAR=0
+# 1 = ademas PULSA "Enviar" (solo si no hay captcha ni campos sin rellenar)
+AUTO_ENVIAR=0
+# 1 = marca por ti la casilla de condiciones/privacidad (si no, no envia)
+ACEPTAR_CONDICIONES=0
+DATOS_NOMBRE=
+DATOS_APELLIDOS=
+DATOS_DNI=
+DATOS_TELEFONO=
+DATOS_EMAIL=
+DATOS_PERSONAS=1

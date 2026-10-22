@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import html
+import json
 import os
 import sys
+import threading
 from pathlib import Path
 from time import sleep
 
@@ -19,7 +21,8 @@ REPETICIONES = config.entero("REPETICIONES_ALERTA", 3)
 URL_API = "https://api.telegram.org/bot{token}/sendMessage"
 
 
-def enviar_mensaje(mensaje: str) -> bool:
+def enviar_mensaje(mensaje: str, boton_url: str | None = None,
+                   boton_texto: str = "🎟️ ABRIR FORMULARIO") -> bool:
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
@@ -28,19 +31,21 @@ def enviar_mensaje(mensaje: str) -> bool:
         return False
 
     try:
+        datos = {
+            "chat_id": chat_id,
+            "text": mensaje,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": False,
+        }
+        if boton_url:
+            datos["reply_markup"] = json.dumps({"inline_keyboard": [
+                [{"text": boton_texto, "url": boton_url}]
+            ]})
         respuesta = requests.post(
-            URL_API.format(token=token),
-            data={
-                "chat_id": chat_id,
-                "text": mensaje,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": False,
-            },
-            timeout=20,
+            URL_API.format(token=token), data=datos, timeout=20,
         )
         respuesta.raise_for_status()
-        datos = respuesta.json()
-        return bool(datos.get("ok"))
+        return bool(respuesta.json().get("ok"))
     except (requests.RequestException, ValueError) as error:
         print(f"Error enviando Telegram: {error}")
         return False
@@ -60,14 +65,37 @@ def enviar_alerta(evento) -> bool:
         "⚡ <b>¡SOLICITA LAS ENTRADAS AHORA!</b>"
     )
 
-    resultado = True
-    for numero in range(max(1, REPETICIONES)):
-        if numero:
-            sleep(3)
-        if not enviar_mensaje(mensaje):
-            resultado = False
+    # El primero sale al instante (con botón para tocar desde el iPhone);
+    # las repeticiones van en segundo plano para no retrasar la vigilancia.
+    resultado = enviar_mensaje(mensaje, boton_url=evento.url)
 
+    def repetir():
+        for _ in range(max(1, REPETICIONES) - 1):
+            sleep(3)
+            enviar_mensaje(mensaje, boton_url=evento.url)
+
+    if REPETICIONES > 1:
+        threading.Thread(target=repetir, daemon=True).start()
     return resultado
+
+
+def enviar_foto(ruta: str, texto: str = "") -> bool:
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    if not token or not chat_id:
+        return False
+    try:
+        with open(ruta, "rb") as archivo:
+            respuesta = requests.post(
+                f"https://api.telegram.org/bot{token}/sendPhoto",
+                data={"chat_id": chat_id, "caption": texto[:1000]},
+                files={"photo": archivo},
+                timeout=40,
+            )
+        return bool(respuesta.json().get("ok"))
+    except (requests.RequestException, ValueError, OSError) as error:
+        print(f"Error enviando foto: {error}")
+        return False
 
 
 if __name__ == "__main__":

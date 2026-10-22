@@ -5,7 +5,7 @@ Bot para monitorizar la disponibilidad de entradas de público de El Hormiguero 
 ## Modo PC (Windows) — recomendado
 
 Lo lanzas tú cuando quieras y se queda funcionando en una ventana, revisa
-`https://entradas.7yaccion.com/` **cada minuto** y, cuando un evento tiene plazas:
+`https://entradas.7yaccion.com/` **cada 15 segundos** y, cuando un evento tiene plazas:
 
 1. Te manda 3 mensajes de Telegram con día, hora y enlace directo.
 2. Abre la página del evento en tu navegador para que rellenes el formulario.
@@ -21,6 +21,28 @@ Doble clic en **`INICIAR VIGILANTE.bat`** (en la raíz del proyecto).
 - **Para pararlo, cierra la ventana.** No arranca solo con Windows.
 
 Otros: `windows\probar_telegram.bat` (mensaje de prueba), `windows\ver_log.bat` (historial).
+
+### Avisos en el iPhone
+
+Cada alerta de Telegram lleva el enlace y un botón **🎟️ ABRIR FORMULARIO**: tocándolo
+se abre la página directamente en el iPhone. Para que el aviso no pase desapercibido,
+en el iPhone: Ajustes → Notificaciones → Telegram → *Sonidos* y *Avisos urgentes*, y en
+tu modo Concentración (No molestar/Sueño) permite las notificaciones de Telegram.
+
+### Rellenado automático del formulario (en el PC)
+
+Las plazas pueden aparecer solo 1–2 minutos, así que el PC puede hacerlo por ti:
+
+1. Doble clic en **`CONFIGURAR FORMULARIO.bat`** → te pregunta tus datos (se guardan solo en `.env`)
+   y si quieres rellenar solo, enviar solo y aceptar las condiciones.
+2. Al detectar plazas abre Edge/Chrome, espera en la sala de espera si hace falta,
+   rellena el formulario y te manda a Telegram una **captura** del resultado.
+3. `AUTO_ENVIAR=0` (por defecto): lo deja rellenado y solo falta que pulses *Enviar*.
+   `AUTO_ENVIAR=1`: lo envía él, **salvo** que haya captcha, un campo obligatorio sin
+   rellenar o una casilla de condiciones sin marcar (en ese caso te avisa).
+4. Cada intento guarda captura y HTML en `datos\capturas\` para poder ajustarlo.
+
+> La solicitud solo vale si luego recibes la llamada de confirmación.
 
 ### ¿Cómo sé que está comprobando y no le bloquean?
 

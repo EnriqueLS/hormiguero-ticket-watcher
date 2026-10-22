@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import argparse
 import logging
+import subprocess
 import os
+import re
 import sys
 import time
 import webbrowser
@@ -27,7 +29,9 @@ from telegram import enviar_alerta, enviar_mensaje  # noqa: E402
 
 
 RAIZ = config.RAIZ
-INTERVALO_COMPROBACION_SEGUNDOS = config.entero("INTERVALO_SEGUNDOS", 60)
+# Las plazas pueden durar < 2 min (visto en la práctica), por eso 15 s.
+INTERVALO_COMPROBACION_SEGUNDOS = config.entero("INTERVALO_REVISION", 15)
+AUTO_RELLENAR = config.booleano("AUTO_RELLENAR", False)
 DURACION_CICLO_SEGUNDOS = 4 * 60 + 40
 INTERVALO_REAVISO_MINUTOS = 10
 HORA_INICIO = config.entero("HORA_INICIO", 7)
@@ -52,7 +56,7 @@ def configurar_log(a_archivo: bool) -> None:
         ruta = RAIZ / "datos" / "vigilante.log"
         ruta.parent.mkdir(parents=True, exist_ok=True)
         archivo = RotatingFileHandler(
-            ruta, maxBytes=1_000_000, backupCount=3, encoding="utf-8"
+            ruta, maxBytes=3_000_000, backupCount=5, encoding="utf-8"
         )
         archivo.setFormatter(formato)
         log.addHandler(archivo)
@@ -97,6 +101,48 @@ def dentro_de_horario() -> bool:
     return hora >= HORA_INICIO or hora < HORA_FIN
 
 
+def etiqueta_evento(evento) -> str:
+    """'27 de octubre' a partir de 'martes, 27 de octubre de 2026'."""
+    texto = (evento.fecha or evento.identificador).split(",")[-1].strip()
+    return re.sub(r" de \d{4}$", "", texto)
+
+
+def guardar_pagina_evento(evento) -> None:
+    """Guarda el HTML del momento en que hay plazas: así se puede ver el
+    formulario real y ajustar el rellenado automático."""
+    if not evento.html:
+        return
+    try:
+        carpeta = RAIZ / "datos" / "capturas"
+        carpeta.mkdir(parents=True, exist_ok=True)
+        marca = hora_espana().strftime("%Y%m%d-%H%M%S")
+        (carpeta / f"{marca}-evento-{evento.identificador}-DISPONIBLE.html").write_text(
+            evento.html, encoding="utf-8")
+    except OSError as error:
+        log.info(f"No pude guardar la página del evento: {error}")
+
+
+def datos_completos() -> bool:
+    return all(os.getenv(k, "").strip() for k in
+               ("DATOS_NOMBRE", "DATOS_DNI", "DATOS_TELEFONO", "DATOS_EMAIL"))
+
+
+def abrir_o_rellenar(evento) -> None:
+    """Lanza el rellenado automático (si está activado y hay datos) o, si no,
+    simplemente abre la página en el navegador."""
+    try:
+        if AUTO_RELLENAR and datos_completos():
+            log.info("🤖 Lanzando el rellenado automático del formulario...")
+            subprocess.Popen(
+                [sys.executable, str(RAIZ / "src" / "reservar.py"), evento.url],
+                cwd=str(RAIZ),
+            )
+        else:
+            webbrowser.open(evento.url, new=2)
+    except Exception as error:  # noqa: BLE001
+        log.info(f"No se pudo abrir/rellenar: {error}")
+
+
 def procesar_eventos(estado: dict, abrir_navegador: bool = False):
     """Hace una comprobación. Devuelve el Resultado (con su diagnóstico)."""
     log.info("Comprobando la web...")
@@ -108,20 +154,15 @@ def procesar_eventos(estado: dict, abrir_navegador: bool = False):
         log.info(f"❌ NO SE PUEDE LEER LA WEB: {resultado.problema}")
         return resultado
 
+    resumen = " | ".join(f"{etiqueta_evento(e)} {e.estado.value}" for e in eventos)
     if resultado.problema:
-        log.info(f"⚠️ Lectura dudosa: {resultado.problema}")
+        log.info(f"⚠️ Lectura dudosa: {resultado.problema} || {resumen}")
     else:
-        log.info(f"✅ Web leída correctamente. Eventos: {len(eventos)} "
-                 "(he entrado en la página de cada uno)")
+        log.info(f"✅ Leída (entrando en cada evento): {resumen}")
 
     eventos_actuales = {evento.identificador for evento in eventos}
 
     for evento in eventos:
-        log.info(
-            f"   → {evento.identificador} | {evento.fecha or '?'} "
-            f"{evento.hora or ''} | {evento.estado.value}"
-        )
-
         if evento.estado == EstadoDisponibilidad.AGOTADO:
             estado["eventos"].pop(evento.identificador, None)
             continue
@@ -134,11 +175,9 @@ def procesar_eventos(estado: dict, abrir_navegador: bool = False):
         if debe_alertar(registro):
             primera_vez = not registro.get("ultima_alerta")
             log.info(f"🚨 ¡HAY PLAZAS! {evento.identificador} {evento.url}")
+            guardar_pagina_evento(evento)
             if abrir_navegador and primera_vez:
-                try:
-                    webbrowser.open(evento.url, new=2)
-                except Exception as error:
-                    log.info(f"No se pudo abrir el navegador: {error}")
+                abrir_o_rellenar(evento)
             if enviar_alerta(evento):
                 registro["ultima_alerta"] = ahora_iso()
                 log.info(f"📨 Alerta de Telegram enviada: {evento.identificador}")
@@ -259,6 +298,7 @@ def ejecutar_continuo() -> None:
     ultimo_problema = None
     ultimos_eventos = []
     ultimo_resumen = time.monotonic()
+    espera_extra = 0
 
     while True:
         inicio = time.monotonic()
@@ -308,8 +348,14 @@ def ejecutar_continuo() -> None:
             ultimo_resumen = time.monotonic()
             comprobaciones = 0
 
+        if ultimo_problema and "BLOQUEO" in ultimo_problema:
+            # Si nos bloquean, insistir más lo empeora: espaciamos y reintentamos.
+            espera_extra = min(300, max(espera_extra * 2, 30))
+            log.info(f"🛑 Posible bloqueo: espero {espera_extra} s antes de reintentar.")
+        else:
+            espera_extra = 0
         transcurrido = time.monotonic() - inicio
-        time.sleep(max(5, INTERVALO_COMPROBACION_SEGUNDOS - transcurrido))
+        time.sleep(max(5, INTERVALO_COMPROBACION_SEGUNDOS - transcurrido) + espera_extra)
 
 
 def principal() -> None:
