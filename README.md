@@ -29,21 +29,6 @@ se abre la página directamente en el iPhone. Para que el aviso no pase desaperc
 en el iPhone: Ajustes → Notificaciones → Telegram → *Sonidos* y *Avisos urgentes*, y en
 tu modo Concentración (No molestar/Sueño) permite las notificaciones de Telegram.
 
-### Rellenado automático del formulario (en el PC)
-
-Las plazas pueden aparecer solo 1–2 minutos, así que el PC puede hacerlo por ti:
-
-1. Doble clic en **`CONFIGURAR FORMULARIO.bat`** → te pregunta tus datos (se guardan solo en `.env`)
-   si quieres que rellene solo, si marca la casilla de condiciones, y qué días ignorar
-   (la web no publica el invitado: si ya sabes qué días no te interesan, no te avisará de ellos).
-2. Al detectar plazas abre Edge/Chrome, espera en la sala de espera si hace falta,
-   rellena el formulario y te manda a Telegram una **captura** del resultado.
-3. **No envía nunca**: lo deja rellenado y el botón *Enviar* lo pulsas tú, si te gusta el invitado.
-   Si hay captcha o un campo que no reconoce, te avisa con la captura.
-4. Cada intento guarda captura y HTML en `datos\capturas\` para poder ajustarlo.
-
-> La solicitud solo vale si luego recibes la llamada de confirmación.
-
 ### ¿Cómo sé que está comprobando y no le bloquean?
 
 - **En la ventana**: cada minuto escribe `✅ Web leída correctamente` y el estado de

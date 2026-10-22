@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import subprocess
 import os
 import re
 import sys
@@ -31,9 +30,6 @@ from telegram import enviar_alerta, enviar_mensaje  # noqa: E402
 RAIZ = config.RAIZ
 # Las plazas pueden durar < 2 min (visto en la práctica), por eso 15 s.
 INTERVALO_COMPROBACION_SEGUNDOS = config.entero("INTERVALO_REVISION", 15)
-AUTO_RELLENAR = config.booleano("AUTO_RELLENAR", False)
-# Días que NO te interesan (p. ej. "26 de octubre, 28 de octubre" o ids "401,416").
-IGNORAR = [x.strip().lower() for x in os.getenv("IGNORAR_DIAS", "").split(",") if x.strip()]
 DURACION_CICLO_SEGUNDOS = 4 * 60 + 40
 INTERVALO_REAVISO_MINUTOS = 10
 HORA_INICIO = config.entero("HORA_INICIO", 7)
@@ -109,14 +105,6 @@ def etiqueta_evento(evento) -> str:
     return re.sub(r" de \d{4}$", "", texto)
 
 
-def ignorado(evento) -> bool:
-    if not IGNORAR:
-        return False
-    claves = {evento.identificador.lower(), etiqueta_evento(evento).lower(),
-              (evento.fecha or "").lower()}
-    return any(i == c or (i and i in (evento.fecha or "").lower()) for i in IGNORAR for c in claves)
-
-
 def guardar_pagina_evento(evento) -> None:
     """Guarda el HTML del momento en que hay plazas: así se puede ver el
     formulario real y ajustar el rellenado automático."""
@@ -132,25 +120,11 @@ def guardar_pagina_evento(evento) -> None:
         log.info(f"No pude guardar la página del evento: {error}")
 
 
-def datos_completos() -> bool:
-    return all(os.getenv(k, "").strip() for k in
-               ("DATOS_NOMBRE", "DATOS_DNI", "DATOS_TELEFONO", "DATOS_EMAIL"))
-
-
-def abrir_o_rellenar(evento) -> None:
-    """Lanza el rellenado automático (si está activado y hay datos) o, si no,
-    simplemente abre la página en el navegador."""
+def abrir_navegador_evento(evento) -> None:
     try:
-        if AUTO_RELLENAR and datos_completos():
-            log.info("🤖 Lanzando el rellenado automático del formulario...")
-            subprocess.Popen(
-                [sys.executable, str(RAIZ / "src" / "reservar.py"), evento.url],
-                cwd=str(RAIZ),
-            )
-        else:
-            webbrowser.open(evento.url, new=2)
+        webbrowser.open(evento.url, new=2)
     except Exception as error:  # noqa: BLE001
-        log.info(f"No se pudo abrir/rellenar: {error}")
+        log.info(f"No se pudo abrir el navegador: {error}")
 
 
 def procesar_eventos(estado: dict, abrir_navegador: bool = False):
@@ -182,16 +156,12 @@ def procesar_eventos(estado: dict, abrir_navegador: bool = False):
         if evento.estado != EstadoDisponibilidad.DISPONIBLE:
             continue
 
-        if ignorado(evento):
-            log.info(f"🙈 Hay plazas el {etiqueta_evento(evento)} pero lo tienes en IGNORAR_DIAS.")
-            continue
-
         if debe_alertar(registro):
             primera_vez = not registro.get("ultima_alerta")
             log.info(f"🚨 ¡HAY PLAZAS! {evento.identificador} {evento.url}")
             guardar_pagina_evento(evento)
             if abrir_navegador and primera_vez:
-                abrir_o_rellenar(evento)
+                abrir_navegador_evento(evento)
             if enviar_alerta(evento):
                 registro["ultima_alerta"] = ahora_iso()
                 log.info(f"📨 Alerta de Telegram enviada: {evento.identificador}")

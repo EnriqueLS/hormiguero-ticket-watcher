@@ -79,25 +79,6 @@ def enviar_alerta(evento) -> bool:
     return resultado
 
 
-def enviar_foto(ruta: str, texto: str = "") -> bool:
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    if not token or not chat_id:
-        return False
-    try:
-        with open(ruta, "rb") as archivo:
-            respuesta = requests.post(
-                f"https://api.telegram.org/bot{token}/sendPhoto",
-                data={"chat_id": chat_id, "caption": texto[:1000]},
-                files={"photo": archivo},
-                timeout=40,
-            )
-        return bool(respuesta.json().get("ok"))
-    except (requests.RequestException, ValueError, OSError) as error:
-        print(f"Error enviando foto: {error}")
-        return False
-
-
 if __name__ == "__main__":
     ok = enviar_mensaje(
         "✅ Prueba correcta: tu PC puede enviar mensajes del vigilante de El Hormiguero."

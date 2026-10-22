@@ -15,19 +15,3 @@ REPETICIONES_ALERTA=3
 AVISO_FALLO_MINUTOS=10
 # Resumen por Telegram cada X horas para saber que sigue vivo (0 = nunca)
 RESUMEN_HORAS=3
-
-# ---- Rellenado automatico del formulario (en este PC) ----
-# 1 = al detectar plazas abre Edge/Chrome y rellena el formulario con tus datos
-AUTO_RELLENAR=0
-# El boton "Enviar" NUNCA lo pulsa el programa: lo pulsas tu.
-# 1 = marca por ti la casilla de condiciones/privacidad (si no, no envia)
-ACEPTAR_CONDICIONES=0
-DATOS_NOMBRE=
-DATOS_APELLIDOS=
-DATOS_DNI=
-DATOS_TELEFONO=
-DATOS_EMAIL=
-DATOS_PERSONAS=1
-
-# Dias que NO te interesan (no te avisa de ellos). Ej: 26 de octubre, 28 de octubre
-IGNORAR_DIAS=
