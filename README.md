@@ -36,7 +36,7 @@ tu modo Concentración (No molestar/Sueño) permite las notificaciones de Telegr
   con el motivo (HTTP 403/429, página antibots, sin internet, web cambiada…).
 - **En el título de la ventana** (barra de tareas): `OK, ultima comprobacion HH:MM`
   o `ATENCION: <motivo>`.
-- **Por Telegram**: un resumen cada 3 h ("🟢 Sigo vigilando…") y un aviso si lleva
+- **Por Telegram**: un aviso solo si lleva
   10 min sin poder leer bien la web ("⚠️ … NO te puedo avisar de plazas").
 
 Ajustes en `.env` (horario, intervalo, abrir navegador…): ver `configuracion_ejemplo.txt`.

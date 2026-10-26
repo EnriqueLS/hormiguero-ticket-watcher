@@ -36,7 +36,6 @@ HORA_INICIO = config.entero("HORA_INICIO", 7)
 HORA_FIN = config.entero("HORA_FIN", 23)
 ABRIR_NAVEGADOR = config.booleano("ABRIR_NAVEGADOR", True)
 AVISO_FALLO_MINUTOS = config.entero("AVISO_FALLO_MINUTOS", 10)
-RESUMEN_HORAS = config.entero("RESUMEN_HORAS", 3)
 
 log = logging.getLogger("vigilante")
 
@@ -217,20 +216,6 @@ def poner_titulo(ultimo_ok_reloj, problema) -> None:
         pass
 
 
-def texto_resumen(comprobaciones, ultimo_ok_reloj, problema, eventos) -> str:
-    lineas = [f"🟢 Sigo vigilando. {comprobaciones} comprobaciones en las "
-              f"últimas {RESUMEN_HORAS} h."]
-    if ultimo_ok_reloj:
-        lineas.append(f"Última lectura correcta: {ultimo_ok_reloj:%H:%M}.")
-    if problema:
-        lineas[0] = "🟠 Sigo funcionando, pero con problemas."
-        lineas.append(f"Último problema: {problema}")
-    for evento in eventos:
-        lineas.append(f"• {evento.fecha or evento.identificador} "
-                      f"{evento.hora or ''}: {evento.estado.value}")
-    return "\n".join(lineas)
-
-
 def adquirir_bloqueo():
     """Evita que haya dos vigilantes a la vez (dobles avisos)."""
     ruta = RAIZ / "datos" / "vigilante.lock"
@@ -269,9 +254,7 @@ def ejecutar_continuo() -> None:
     enviar_mensaje(
         "🤖 Vigilante de El Hormiguero arrancado en tu PC.\n"
         f"Revisa cada {INTERVALO_COMPROBACION_SEGUNDOS} s, {horario}.\n"
-        + (f"Te mandaré un resumen cada {RESUMEN_HORAS} h para que sepas que sigo vivo, "
-           if RESUMEN_HORAS > 0 else "")
-        + f"y te aviso si llevo {AVISO_FALLO_MINUTOS} min sin poder leer la web."
+        + f"Te aviso si llevo {AVISO_FALLO_MINUTOS} min sin poder leer la web."
     )
 
     ultimo_ok = time.monotonic()
@@ -281,7 +264,6 @@ def ejecutar_continuo() -> None:
     comprobaciones = 0
     ultimo_problema = None
     ultimos_eventos = []
-    ultimo_resumen = time.monotonic()
     espera_extra = 0
 
     while True:
@@ -326,11 +308,6 @@ def ejecutar_continuo() -> None:
             )
             fallo_avisado = True
 
-        if RESUMEN_HORAS > 0 and time.monotonic() - ultimo_resumen >= RESUMEN_HORAS * 3600:
-            enviar_mensaje(texto_resumen(comprobaciones, ultimo_ok_reloj,
-                                         ultimo_problema, ultimos_eventos))
-            ultimo_resumen = time.monotonic()
-            comprobaciones = 0
 
         if ultimo_problema and "BLOQUEO" in ultimo_problema:
             # Si nos bloquean, insistir más lo empeora: espaciamos y reintentamos.
