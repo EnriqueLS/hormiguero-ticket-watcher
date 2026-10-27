@@ -14,7 +14,6 @@ import os
 import re
 import sys
 import time
-import webbrowser
 from datetime import datetime, timedelta, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -34,7 +33,6 @@ DURACION_CICLO_SEGUNDOS = 4 * 60 + 40
 INTERVALO_REAVISO_MINUTOS = 10
 HORA_INICIO = config.entero("HORA_INICIO", 7)
 HORA_FIN = config.entero("HORA_FIN", 23)
-ABRIR_NAVEGADOR = config.booleano("ABRIR_NAVEGADOR", True)
 AVISO_FALLO_MINUTOS = config.entero("AVISO_FALLO_MINUTOS", 10)
 
 log = logging.getLogger("vigilante")
@@ -119,14 +117,7 @@ def guardar_pagina_evento(evento) -> None:
         log.info(f"No pude guardar la página del evento: {error}")
 
 
-def abrir_navegador_evento(evento) -> None:
-    try:
-        webbrowser.open(evento.url, new=2)
-    except Exception as error:  # noqa: BLE001
-        log.info(f"No se pudo abrir el navegador: {error}")
-
-
-def procesar_eventos(estado: dict, abrir_navegador: bool = False):
+def procesar_eventos(estado: dict):
     """Hace una comprobación. Devuelve el Resultado (con su diagnóstico)."""
     log.info("Comprobando la web...")
 
@@ -156,11 +147,8 @@ def procesar_eventos(estado: dict, abrir_navegador: bool = False):
             continue
 
         if debe_alertar(registro):
-            primera_vez = not registro.get("ultima_alerta")
             log.info(f"🚨 ¡HAY PLAZAS! {evento.identificador} {evento.url}")
             guardar_pagina_evento(evento)
-            if abrir_navegador and primera_vez:
-                abrir_navegador_evento(evento)
             if enviar_alerta(evento):
                 registro["ultima_alerta"] = ahora_iso()
                 log.info(f"📨 Alerta de Telegram enviada: {evento.identificador}")
@@ -281,7 +269,7 @@ def ejecutar_continuo() -> None:
             en_pausa = False
 
         try:
-            resultado = procesar_eventos(estado, abrir_navegador=ABRIR_NAVEGADOR)
+            resultado = procesar_eventos(estado)
             comprobaciones += 1
             if resultado.eventos:
                 ultimos_eventos = resultado.eventos

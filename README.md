@@ -7,8 +7,7 @@ Bot para monitorizar la disponibilidad de entradas de público de El Hormiguero 
 Lo lanzas tú cuando quieras y se queda funcionando en una ventana, revisa
 `https://entradas.7yaccion.com/` **cada 15 segundos** y, cuando un evento tiene plazas:
 
-1. Te manda 3 mensajes de Telegram con día, hora y enlace directo.
-2. Abre la página del evento en tu navegador para que rellenes el formulario.
+Te manda 3 mensajes de Telegram con día, hora y enlace directo (con un botón para abrirlo desde el iPhone). No abre nada en el PC.
 
 ### Cómo lanzarlo (a mano)
 
